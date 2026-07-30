@@ -1,0 +1,11 @@
+{
+  // Onboarding config for a fork. Renovate's default `forkProcessing: "auto"`
+  // skips forked repositories entirely, so no onboarding PR is ever offered
+  // here — committing this file by hand is what brings the repo into scope.
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["local>AISecurityAssurance/renovate-config"],
+
+  // No automerge. This repo has no pull_request CI gate, so there is no green
+  // signal for Renovate to wait on. It opens grouped, scheduled PRs plus the
+  // Dependency Dashboard, and a human reviews and merges.
+}
