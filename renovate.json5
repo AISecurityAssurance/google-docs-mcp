@@ -1,11 +1,60 @@
 {
-  // Onboarding config for a fork. Renovate's default `forkProcessing: "auto"`
-  // skips forked repositories entirely, so no onboarding PR is ever offered
-  // here — committing this file by hand is what brings the repo into scope.
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>AISecurityAssurance/renovate-config"],
-
-  // No automerge. This repo has no pull_request CI gate, so there is no green
-  // signal for Renovate to wait on. It opens grouped, scheduled PRs plus the
+  // Org Renovate policy, INLINED rather than extending the shared preset.
+  //
+  // Why inline: the preset lives in a PRIVATE repo
+  // (AISecurityAssurance/renovate-config), and Renovate deliberately refuses to
+  // send an auth token when processing a PUBLIC repo — so a leaked token cannot
+  // reach private repos. A public repo therefore 404s on a private preset:
+  // "Cannot find preset's package". See renovatebot/renovate#26300.
+  //
+  // This mirrors AISecurityAssurance/renovate-config/default.json. Changes there
+  // do NOT reach this file; keep the two in step by hand.
+  //
+  // No automerge: this is a fork with no pull_request CI gate, so there is no
+  // green signal for Renovate to wait on. It opens scheduled PRs plus the
   // Dependency Dashboard, and a human reviews and merges.
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard", // one tracking issue per repo — fleet visibility
+    ":semanticCommits", // feat:/fix:/chore: titles, matching our git convention
+    "helpers:pinGitHubActionDigests", // a mutable @v4 tag can be repointed at malicious code
+    "security:minimumReleaseAgeNpm", // 3-day soak, so a malicious publish can be caught first
+    ":configMigration", // Renovate PRs its own deprecated-option renames
+  ],
+
+  "timezone": "America/New_York",
+  "schedule": ["before 6am on monday"], // batch weekly → fewer CI runs
+
+  // Raised from 5/2 in renovate-config#3: backlogs were queueing far faster than
+  // a limit of 5 could drain them.
+  "prConcurrentLimit": 20,
+  "prHourlyLimit": 5,
+
+  "rebaseWhen": "conflicted",
+  "lockFileMaintenance": { "enabled": true, "schedule": ["before 6am on monday"] },
+  "labels": ["dependencies"],
+
+  // Renovate self-merges via its own API rather than GitHub native auto-merge,
+  // which needs branch protection unavailable on private repos on GitHub Free.
+  // Only takes effect where a rule sets automerge:true — nothing here does.
+  "platformAutomerge": false,
+
+  "vulnerabilityAlerts": { "labels": ["security"], "automerge": false },
+  "osvVulnerabilityAlerts": true,
+
+  "packageRules": [
+    {
+      "description": "Group non-major dev dependencies into a single PR.",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dev dependencies (non-major)",
+    },
+    {
+      "description": "Major upgrades never automerge — flag for human review.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "addLabels": ["major-review"],
+    },
+  ],
 }
